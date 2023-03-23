@@ -93,16 +93,18 @@ class Ob(frobenius.Ob):
     :class:`Qudit`, but feel free to open a pull-request if you discover a
     third kind of information unit.
     """
-    def __init__(self, name: str, dim=2, z=0):
+    def __init__(self, name: str, qubit_id: int, dim=2, z=0):
         assert_isinstance(dim, int)
+        assert_isinstance(qubit_id, int)
         assert_isinstance(self, (Digit, Qudit))
         if dim < 2:
             raise ValueError
         self.dim = dim
+        self.qubit_id = qubit_id
         super().__init__(name, z)
 
     def __repr__(self):
-        return f"{factory_name(type(self))}({self.dim})"
+        return f"{factory_name(type(self))}({self.qubit_id})({self.dim})"
 
 
 class Digit(Ob):
@@ -132,9 +134,9 @@ class Qudit(Ob):
     --------
     >>> assert qubit.inside == (Qudit(2),)
     """
-    def __init__(self, dim, z=0):
-        name = "qubit" if dim == 2 else f"Qudit({dim})"
-        super().__init__(name, dim)
+    def __init__(self, dim, qubit_id, z=0):
+        name = "qubit_" + str(qubit_id) if dim == 2 else f"Qudit_{qubit_id}({dim})"
+        super().__init__(name, qubit_id, dim)
 
 
 @factory
@@ -159,7 +161,6 @@ class Ty(frobenius.Ty):
     """
     ob_factory = Ob
 
-
 @factory
 class Circuit(tensor.Diagram):
     """
@@ -173,7 +174,7 @@ class Circuit(tensor.Diagram):
     ty_factory = Ty
 
     @classmethod
-    def id(cls, dom: int | Ty = None):
+    def id(cls, qubit_id, dom: int | Ty = None):
         """
         The identity circuit on a given domain.
 
@@ -181,7 +182,7 @@ class Circuit(tensor.Diagram):
             dom : The domain (and codomain) of the identity,
                   or ``qubit ** dom`` if ``dom`` is an ``int``.
         """
-        dom = qubit ** dom if isinstance(dom, int) else dom
+        dom = qubit(qubit_id) ** dom if isinstance(dom, int) else dom
         return tensor.Diagram.id.__func__(Circuit, dom)
 
     @property
@@ -904,5 +905,9 @@ def bitstring2index(bitstring):
 
 
 Circuit.braid_factory, Circuit.sum_factory = Swap, Sum
-bit, qubit = Ty(Digit(2)), Ty(Qudit(2))
+#bit, qubit = Ty(Digit(2)), Ty(Qudit(2))
+bit = Ty(Digit(2))
 Id = Circuit.id
+
+def qubit(qubit_id):
+    return Ty(Qudit(2, qubit_id))

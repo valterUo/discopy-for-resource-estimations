@@ -59,7 +59,6 @@ from discopy.quantum.circuit import (
 from discopy.tensor import Dim, Tensor, backend
 from discopy.utils import factory_name, assert_isinstance
 
-
 def format_number(data):
     """ Tries to format a number. """
     try:
@@ -147,8 +146,15 @@ class Measure(SelfConjugate):
     """
     draw_as_measures = True
 
-    def __init__(self, n_qubits=1, destructive=True, override_bits=False):
-        dom, cod = qubit ** n_qubits, bit ** n_qubits
+    def __init__(self, measured_qubits = [1], destructive=True, override_bits=False):
+        #dom, cod = qubit ** n_qubits, bit ** n_qubits
+        n_qubits = len(measured_qubits)
+        dom, cod = Ty(), Ty()
+        
+        for i in measured_qubits:
+            dom = dom @ qubit(i)
+            cod = cod @ bit
+        
         name = f"Measure({'' if n_qubits == 1 else n_qubits})"
         if not destructive:
             cod = qubit ** n_qubits @ cod
@@ -393,14 +399,18 @@ class Controlled(QuantumGate):
     """
     draw_as_controlled = True
 
-    def __init__(self, controlled, distance=1):
+    def __init__(self, controlled, qubits, distance=1):
         assert_isinstance(controlled, QuantumGate)
+        assert_isinstance(qubits, list)
         if not distance:
             raise ValueError(messages.ZERO_DISTANCE_CONTROLLED)
         self.controlled, self.distance = controlled, distance
         n_qubits = len(controlled.dom) + abs(distance)
         name = f'C{controlled}'
-        dom = cod = qubit ** n_qubits
+        dom, cod = Ty(), Ty()
+        for i in qubits:
+            dom = dom @ qubit(i)
+            cod = cod @ qubit(i)
         QuantumGate.__init__(self, name, dom, cod, data=controlled.data)
 
     def dagger(self):
@@ -550,9 +560,9 @@ class Rotation(Parametrized, QuantumGate):
     """ Abstract class for rotation gates. """
     n_qubits = 1
 
-    def __init__(self, phase, z=0):
+    def __init__(self, qubit_id, phase, z=0):
         name, n_qubits = type(self).__name__, type(self).n_qubits
-        dom = cod = qubit ** n_qubits
+        dom = cod = qubit(qubit_id) ** n_qubits
         QuantumGate.__init__(self, name, dom, cod, z=z)
         Parametrized.__init__(self, name, dom, cod, is_mixed=False, data=phase)
 
@@ -711,20 +721,21 @@ def scalar(expr, is_mixed=False):
     return Scalar(expr, is_mixed=is_mixed)
 
 
-SWAP = Swap(qubit, qubit)
-H = QuantumGate(
-    'H', qubit, qubit,
+SWAP = lambda q1, q2 : Swap(qubit(q1), qubit(q2))
+H = lambda q : QuantumGate(
+    'H', qubit(q), qubit(q),
     data=[2 ** -0.5 * x for x in [1, 1, 1, -1]], is_dagger=None, z=None)
-S = QuantumGate('S', qubit, qubit, [1, 0, 0, 1j])
-T = QuantumGate('T', qubit, qubit, [1, 0, 0, e ** (1j * pi / 4)])
-X = QuantumGate('X', qubit, qubit, [0, 1, 1, 0], is_dagger=None, z=None)
-Y = QuantumGate('Y', qubit, qubit, [0, 1j, -1j, 0], is_dagger=None)
-Z = QuantumGate('Z', qubit, qubit, [1, 0, 0, -1], is_dagger=None, z=None)
-CX = Controlled(X)
-CY = Controlled(Y)
-CZ = Controlled(Z)
-CCX = Controlled(CX)
-CCZ = Controlled(CZ)
+S = lambda q : QuantumGate('S', qubit(q), qubit(q), [1, 0, 0, 1j])
+T = lambda q : QuantumGate('T', qubit(q), qubit(q), [1, 0, 0, e ** (1j * pi / 4)])
+X = lambda q : QuantumGate('X', qubit(q), qubit(q), [0, 1, 1, 0], is_dagger=None, z=None)
+Y = lambda q : QuantumGate('Y', qubit(q), qubit(q), [0, 1j, -1j, 0], is_dagger=None)
+Z = lambda q : QuantumGate('Z', qubit(q), qubit(q), [1, 0, 0, -1], is_dagger=None, z=None)
+
+CX = lambda x, y : Controlled(X(x), qubits = [x, y])
+CY = lambda x, y : Controlled(Y(x), qubits = [x, y])
+CZ = lambda x, y : Controlled(Z(x), qubits = [x, y])
+CCX = lambda x, y, z : Controlled(CX(x,y), qubits = [x, y, z])
+CCZ = lambda x, y, z : Controlled(CZ(x,y), qubits = [x, y, z])
 
 GATES = {
     'SWAP': SWAP,
