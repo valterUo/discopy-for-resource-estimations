@@ -104,7 +104,7 @@ class Ob(frobenius.Ob):
         super().__init__(name, z)
 
     def __repr__(self):
-        return f"{factory_name(type(self))}({self.qubit_id})({self.dim})"
+        return f"{factory_name(type(self))}({qubit_id})({self.dim})"
 
 
 class Digit(Ob):
@@ -174,7 +174,7 @@ class Circuit(tensor.Diagram):
     ty_factory = Ty
 
     @classmethod
-    def id(cls, qubit_id, dom: int | Ty = None):
+    def id(cls, dom): #dom: int | Ty = None, qubit_id):
         """
         The identity circuit on a given domain.
 
@@ -182,7 +182,7 @@ class Circuit(tensor.Diagram):
             dom : The domain (and codomain) of the identity,
                   or ``qubit ** dom`` if ``dom`` is an ``int``.
         """
-        dom = qubit(qubit_id) ** dom if isinstance(dom, int) else dom
+        #dom = qubit(qubit_id) ** dom if isinstance(dom, int) else dom
         return tensor.Diagram.id.__func__(Circuit, dom)
 
     @property

@@ -255,6 +255,9 @@ class Functor(rigid.Functor):
         cod (Category) : The codomain of the functor.
     """
     dom = cod = Category(Ty, Diagram)
+    
+    def __call__(self, other):
+        return super().__call__(other)
 
 
 Diagram.cup_factory, Diagram.cap_factory = Cup, Cap
